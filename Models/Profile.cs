@@ -17,6 +17,7 @@ public class Profile
         DisplayName = displayName;
         UserId = userId;
         Year = year;
+        Note = note;
         AvatarColorHex = avatarColorHex;
         Role = role;
     }

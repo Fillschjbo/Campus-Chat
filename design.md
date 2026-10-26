@@ -3,3 +3,6 @@ I have put the project int the root folder since the assignment asks that build 
 
 ## Global interactivity:
 I set the project up with global interactivity since every page needs a live connection anyway, and forgetting to add @rendermode interactiveServer on a page can cause a massive headache and unnecessary troubleshooting
+
+## Profile class:
+The profile class stores displayname, id, note, avatarcolor, year and role. Instead of having a list of threads the user has joined i decided to have a membership record that stores the userid and later on the threadid. The role enum has student, lecturer and auditor as roles.
