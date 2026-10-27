@@ -1,6 +1,6 @@
 namespace CampusChat.Models;
 
-public record Membership(int userId, int threadId)
+public record Membership(int UserId, int ThreadId)
 {
-    public DateTime LastReadUtc { get; set; }
-};
+    public DateTime LastReadUTC { get; set; }
+}

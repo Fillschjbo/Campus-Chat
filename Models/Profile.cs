@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using CampusChat.Enums;
 
 namespace CampusChat.Models;
@@ -6,7 +5,7 @@ namespace CampusChat.Models;
 public class Profile
 {
     public string DisplayName { get; set; }
-    public int UserId { get; init; }
+    public int UserId { get; }
     public int Year { get; set; }
     public string Note { get; set; }
     public string AvatarColorHex { get; set; }

@@ -4,18 +4,18 @@ namespace CampusChat.Models;
 
 public class ChatThread
 {
-    public string Name {get; set;}
-    public int ThreadId {get; init;}
-    public DateTime CreatedAt {get;set;}
-    public bool IsPrivate {get;set;}
-    public int Owner {get;set;}
+    public string Name { get;  }
+    public int ThreadId { get; }
+    public DateTime CreatedAtUTC { get; }
+    public bool IsPrivate { get; }
+    public int OwnerId { get; }
 
-    public ChatThread(string name, int threadId, DateTime createdAt, bool isPrivate, int owner)
+    public ChatThread(string name, int threadId, DateTime createdAtUTC, bool isPrivate, int ownerId)
     {
         Name = name;
         ThreadId = threadId;
-        CreatedAt = createdAt;
+        CreatedAtUTC = createdAtUTC;
         IsPrivate = isPrivate;
-        Owner = owner;
+        OwnerId = ownerId;
     }
 }
