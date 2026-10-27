@@ -52,12 +52,20 @@ public class ChatService
     /// <summary>
     /// Gets all profiles
     /// </summary>
-    /// <returns>A list of profiles or o profiles when there are none. Not null</returns>
+    /// <returns>A list of profiles or profiles when there are none. Not null</returns>
     public IReadOnlyList<Profile> GetAllProfiles()
     {
         lock (_lock)
         {
             return _profiles.ToList();
+        }
+    }
+
+    public Profile? GetProfileById(int profileId)
+    {
+        lock (_lock)
+        {
+           return _profiles.FirstOrDefault(p => p.UserId == profileId);
         }
     }
     
