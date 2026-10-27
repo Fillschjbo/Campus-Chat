@@ -2,18 +2,18 @@ namespace CampusChat.Models;
 
 public class Post
 {
-    public int Id { get; }
+    public int PostId { get; }
     public int ThreadId { get; }
     public int AuthorId { get; }
-    public string? Title { get; }
-    public string Body { get; set; }
-    public DateTime CreatedAtUTC { get; }
-    public int? ParentPostId { get; init; }
+    public string? Title { get; set; }
+    public string Body { get; }
+    public DateTime CreatedAtUTC { get; set; }
+    public int? ParentPostId { get; }
     
-    public Post(int id, int threadId, int authorId, string title, string body, DateTime createdAtUTC, int? parentPostId)
+    public Post(int postId, int threadId, int authorId, string? title, string body, DateTime createdAtUTC, int? parentPostId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(body);
-        Id = id;
+        PostId = postId;
         ThreadId = threadId;
         AuthorId = authorId;
         Title = title;
