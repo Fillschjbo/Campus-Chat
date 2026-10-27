@@ -48,5 +48,17 @@ public class ChatService
         _messages.Add(new Message(1, 2, _nextMessageId++, "Stop bringing cheese to class!", DateTime.UtcNow.AddHours(-2)));
         _messages.Add(new Message(1, 1, _nextMessageId++, "Its just Vieux-Boulogne, relax", DateTime.UtcNow.AddHours(-1)));
     }
+
+    /// <summary>
+    /// Gets all profiles
+    /// </summary>
+    /// <returns>A list of profiles or o profiles when there are none. Not null</returns>
+    public IReadOnlyList<Profile> GetAllProfiles()
+    {
+        lock (_lock)
+        {
+            return _profiles.ToList();
+        }
+    }
     
 }
