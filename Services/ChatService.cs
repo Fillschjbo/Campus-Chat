@@ -68,5 +68,15 @@ public class ChatService
            return _profiles.FirstOrDefault(p => p.UserId == profileId);
         }
     }
+
+    public Profile CreateProfile(string displayName, int year, string note, string avatarColorHex)
+    {
+        lock (_lock)
+        { 
+           var profile = new Profile(displayName, _nextProfileId++, year, note, avatarColorHex, Role.Student);
+           _profiles.Add(profile);
+            return profile;
+        }
+    }
     
 }

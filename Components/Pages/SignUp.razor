@@ -1,0 +1,27 @@
+@page "/signup"
+
+@inject CurrentUserService currentUser
+@inject ChatService chat
+@inject NavigationManager nav
+
+<form @onsubmit="CreateProfile">
+    <input type="text" required="required" @bind="displayName">
+    <input type="range"required="required" min="1" max="5" @bind="year">
+    <input type="text" required="required" @bind="note">
+    <input type="color" required="required" @bind="avatarColorHex">
+    <button type="submit">Sign up</button>
+</form>
+
+@code
+{
+    string displayName = "";
+    int year = 0;
+    string note = "";
+    string avatarColorHex = "";
+
+    private void CreateProfile()
+    {
+        chat.CreateProfile(displayName, year, note, avatarColorHex);
+        nav.NavigateTo("/signin");
+    }
+}
