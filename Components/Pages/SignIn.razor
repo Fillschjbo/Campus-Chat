@@ -1,0 +1,36 @@
+@page "/signin"
+
+@inject CurrentUserService CurrentUser
+@inject ChatService Chat
+@inject NavigationManager nav
+
+
+@if (profiles.Count == 0)
+{
+    <p>No profiles found</p>
+}
+else
+{
+    @foreach (var profile in profiles)
+    {
+        <button @onclick="()=> SignInAs(profile.UserId)">
+            <div>@profile.DisplayName</div>
+            <div>@profile.Note</div>
+            <div>@profile.Role</div>
+            <div style="background: @profile.AvatarColorHex; width: 10px; height: 10px; display: inline-block; border-radius: 50%; "></div>
+        </button>
+    }
+}
+
+@code {
+    private IReadOnlyList<Profile> profiles = [];
+    
+    protected override void OnInitialized() =>
+        profiles =  Chat.GetAllProfiles();
+
+    protected async Task SignInAs(int UserId)
+    {
+        await CurrentUser.SignInAsync(UserId);
+        nav.NavigateTo("/");
+    }
+}
