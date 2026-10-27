@@ -1,8 +1,11 @@
 using CampusChat.Components;
+using CampusChat.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddSingleton<ChatService>();
+builder.Services.AddScoped<CurrentUserService>();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
