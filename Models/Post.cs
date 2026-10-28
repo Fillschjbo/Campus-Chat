@@ -9,6 +9,7 @@ public class Post
     public string Body { get; }
     public DateTime CreatedAtUTC { get; set; }
     public int? ParentPostId { get; }
+    public bool IsDeleted { get; set; } = false;
     
     public Post(int postId, int threadId, int authorId, string? title, string body, DateTime createdAtUTC, int? parentPostId)
     {
