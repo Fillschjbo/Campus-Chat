@@ -27,9 +27,13 @@
         else
         {
             <div class="nav-item px-3">
-                <h3 style="color: whitesmoke;">Logged in as @chat.GetProfileById(CurrentUser.CurrentUserId.Value).DisplayName</h3>
+                <h3 style="color: whitesmoke;">Logged in as @user.DisplayName</h3>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="@($"/profile/{user.UserId}")">My Profile</NavLink>
+                </div>
                 <button @onclick="CurrentUser.SignOutAsync" style="height: 28px; width: 80%;">Sign out</button>
             </div>
+            
         }
         
     </nav>

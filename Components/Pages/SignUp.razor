@@ -4,20 +4,65 @@
 @inject ChatService chat
 @inject NavigationManager nav
 
-<form @onsubmit="CreateProfile">
-    <input type="text" required="required" @bind="displayName">
-    <input type="range"required="required" min="1" max="5" @bind="year">
-    <input type="text" required="required" @bind="note">
-    <input type="color" required="required" @bind="avatarColorHex">
-    <button type="submit">Sign up</button>
-</form>
+
+<h2 style="margin: 0 0 8px; font-size: 28px; font-weight: 700; letter-spacing: -0.5px; color: #1e293b; font-family: Inter, Arial, sans-serif;">
+    Create your profile
+</h2>
+<p style="margin: 0 0 28px; color: #64748b; font-size: 15px; line-height: 1.6; font-family: Inter, Arial, sans-serif;">
+    Sign up and personalize your profile.
+</p>
+
+<div style="max-width: 800px; margin-bottom: 40px; padding: 32px; box-sizing: border-box; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; box-shadow: 0 8px 30px rgba(15,23,42,0.04); font-family: Inter, Arial, sans-serif;">
+
+    <form @onsubmit="CreateProfile" style="display: flex; flex-direction: column; gap: 22px;">
+
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+            <label style="font-size: 14px; font-weight: 600; color: #334155;">Display name</label>
+            <input type="text" required="required" @bind="displayName"
+                   placeholder="Enter your display name"
+                   style="width: 100%; box-sizing: border-box; padding: 13px 14px; border: 1px solid #cbd5e1; border-radius: 10px; background: #ffffff; color: #1e293b; font-size: 14px;" />
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <label style="font-size: 14px; font-weight: 600; color: #334155;">Year</label>
+            <input type="range" required="required" min="1" max="5" @bind="year"
+                   style="width: 100%; accent-color: #4f46e5; cursor: pointer;" />
+            <div style="display: flex; justify-content: space-between; color: #64748b; font-size: 12px;">
+                <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+            </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+            <label style="font-size: 14px; font-weight: 600; color: #334155;">About you</label>
+            <input type="text" required="required" @bind="note"
+                   placeholder="Write a short introduction"
+                   style="width: 100%; box-sizing: border-box; padding: 13px 14px; border: 1px solid #cbd5e1; border-radius: 10px; background: #ffffff; color: #1e293b; font-size: 14px;" />
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <label style="font-size: 14px; font-weight: 600; color: #334155;">Avatar color</label>
+            <div style="display: flex; align-items: center; gap: 14px;">
+                <input type="color" required="required" @bind="avatarColorHex"
+                       style="width: 52px; height: 44px; padding: 4px; border: 1px solid #e2e8f0; border-radius: 10px; background: #ffffff; cursor: pointer;" />
+                <span style="color: #64748b; font-size: 13px;">Choose a color for your profile.</span>
+            </div>
+        </div>
+
+        <button type="submit"
+                style="width: 100%; margin-top: 6px; padding: 14px 20px; border: none; border-radius: 10px; background: #4f46e5; color: #ffffff; font-size: 15px; font-weight: 600; cursor: pointer;">
+            Sign up
+        </button>
+
+    </form>
+</div>
+
 
 @code
 {
     string displayName = "";
     int year = 0;
     string note = "";
-    string avatarColorHex = "";
+    string avatarColorHex = "#000000";
 
     private void CreateProfile()
     {

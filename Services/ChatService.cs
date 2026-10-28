@@ -78,5 +78,13 @@ public class ChatService
             return profile;
         }
     }
-    
+
+    public IReadOnlyList<ChatThread> GetChatThreadsJoinedBy(int userId)
+    {
+        lock (_lock)
+        {
+            var threadIds = _memberships.Where(m => m.UserId == userId).Select(m => m.ThreadId);
+            return _threads.Where(t => threadIds.Contains(t.ThreadId)).ToList();
+        }
+    }
 }
