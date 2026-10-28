@@ -380,8 +380,6 @@ public class ChatService
                 throw new UnauthorizedAccessException(
                     "You can only delete your own posts.");
             }
-
-            // Preserve the post if replies depend on it.
             var hasReplies = _posts.Any(
                 p => p.ParentPostId == postId);
 
