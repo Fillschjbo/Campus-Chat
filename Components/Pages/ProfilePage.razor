@@ -57,9 +57,8 @@
                     Threads joined by: @profile.DisplayName
                 </h3>
 
-                @foreach (var thread in threads)
-                {
-                    if (threads.Count == 0)
+                
+                @if (threads.Count == 0)
                     {
                         <div style="max-width: 480px; margin: 60px auto; padding: 40px; text-align: center; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.04);">
                             <h3 style="margin: 0 0 12px; font-size: 22px; color: #1e293b;">
@@ -67,7 +66,9 @@
                             </h3>
                         </div>
                     }
-                    else
+                else
+                    {
+                    foreach (var thread in threads)
                     {
                         if (thread.IsPrivate == true)
                         {
@@ -82,7 +83,7 @@
                         }
                         else
                         {
-                            <a href="/threads/@thread.Name" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; padding: 18px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;">
+                            <a href="/threads/@thread.ThreadId" style="display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; padding: 18px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;">
                                 <h3 style="margin: 0; font-size: 16px; font-weight: 600; overflow-wrap: anywhere;">
                                     @thread.Name
                                 </h3>

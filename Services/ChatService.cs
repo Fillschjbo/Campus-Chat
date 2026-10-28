@@ -18,6 +18,7 @@ public class ChatService
     private int _nextPostId = 1;
     private int _nextDirectChatId = 1;
     private int _nextMessageId = 1;
+    public event Action? ProfileChanged;
 
     public ChatService()
     {
@@ -71,14 +72,72 @@ public class ChatService
 
     public Profile CreateProfile(string displayName, int year, string note, string avatarColorHex)
     {
+        ValidateProfileInput(displayName, year, note, avatarColorHex,  Role.Student);
+
         lock (_lock)
-        { 
-           var profile = new Profile(displayName, _nextProfileId++, year, note, avatarColorHex, Role.Student);
-           _profiles.Add(profile);
+        {
+            var profile = new Profile(
+                displayName,
+                _nextProfileId++,
+                year,
+                note,
+                avatarColorHex,
+                Role.Student);
+
+            _profiles.Add(profile);
+
             return profile;
         }
     }
+    
+    public void UpdateProfile(
+        int callerId,
+        string displayName,
+        int year,
+        string note,
+        string avatarColorHex)
+    {
+        ValidateProfileInput(displayName, year, note, avatarColorHex, year == 0 ? Role.Lecturer : Role.Student);
 
+        lock (_lock)
+        {
+            var profile = _profiles.FirstOrDefault(p => p.UserId == callerId);
+
+            if (profile == null)
+            {
+                throw new InvalidOperationException(
+                    $"No profile exists for user ID {callerId}.");
+            }
+
+            profile.DisplayName = displayName;
+            profile.Year = year;
+            profile.Note = note;
+            profile.AvatarColorHex = avatarColorHex;
+        }
+
+        ProfileChanged?.Invoke();
+    }
+    
+    private static void ValidateProfileInput(
+        string displayName,
+        int year,
+        string note,
+        string avatarColorHex,
+        Role role)
+    {
+        if (string.IsNullOrWhiteSpace(displayName))
+            throw new ArgumentException("Display name is required.", nameof(displayName));
+
+        if (role == Role.Student && (year < 1 || year > 5))
+            throw new ArgumentException("Year must be between 1 and 5.", nameof(year));
+
+        if (string.IsNullOrWhiteSpace(note))
+            throw new ArgumentException("Note is required.", nameof(note));
+
+        if (string.IsNullOrWhiteSpace(avatarColorHex))
+            throw new ArgumentException("Avatar color is required.", nameof(avatarColorHex));
+    }
+    
     public IReadOnlyList<ChatThread> GetChatThreadsJoinedBy(int userId)
     {
         lock (_lock)

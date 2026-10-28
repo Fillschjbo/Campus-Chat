@@ -41,6 +41,7 @@
 
 @code {
     private Profile? user;
+    
 
     private void LoadUser()
     {
@@ -65,12 +66,23 @@
     protected override void OnInitialized()
     {
         CurrentUser.UserChanged += OnUserChanged;
+        chat.ProfileChanged += OnProfileChanged;
         LoadUser();
+    }
+    
+    private void OnProfileChanged()
+    {
+        _ = InvokeAsync(() =>
+        {
+            LoadUser();
+            StateHasChanged();
+        });
     }
     
     public void Dispose()
     {
         CurrentUser.UserChanged -= OnUserChanged;
+        chat.ProfileChanged -= OnProfileChanged;
     }
 
 }
