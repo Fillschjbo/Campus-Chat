@@ -1,0 +1,155 @@
+@page "/profile/edit"
+@using CampusChat.Enums
+
+@inject CurrentUserService CurrentUser
+@inject ChatService Chat
+@inject NavigationManager nav
+
+@if (CurrentUser.CurrentUserId == null)
+{
+    <div style="max-width: 480px; margin: 40px 0; padding: 32px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; font-family: Inter, Arial, sans-serif;">
+        <h2 style="margin: 0 0 12px; font-size: 22px; font-weight: 700; color: #1e293b;">
+            Sign in to edit your profile
+        </h2>
+
+        <p style="margin: 0 0 20px; color: #64748b; font-size: 14px; line-height: 1.6;">
+            You need to be signed in to edit your profile.
+        </p>
+
+        <a href="/signin"
+           style="display: inline-block; padding: 12px 20px; background: #4f46e5; color: #ffffff; border-radius: 10px; font-size: 14px; font-weight: 600; text-decoration: none;">
+            Sign in
+        </a>
+    </div>
+}
+else if (profile != null)
+{
+    <h2 style="margin: 0 0 8px; font-size: 28px; font-weight: 700; letter-spacing: -0.5px; color: #1e293b; font-family: Inter, Arial, sans-serif;">
+        Edit profile
+    </h2>
+
+    <p style="margin: 0 0 28px; color: #64748b; font-size: 15px; font-family: Inter, Arial, sans-serif;">
+        Update your profile information.
+    </p>
+
+    <div style="max-width: 800px; margin-bottom: 40px; padding: 32px; box-sizing: border-box; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; box-shadow: 0 8px 30px rgba(15,23,42,0.04); font-family: Inter, Arial, sans-serif;">
+
+        <form @onsubmit="Save" @onsubmit:preventDefault="true"
+              style="display: flex; flex-direction: column; gap: 22px;">
+
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <label style="font-size: 14px; font-weight: 600; color: #334155;">
+                    Display name
+                </label>
+
+                <input type="text" required @bind="displayName"
+                       style="width: 100%; box-sizing: border-box; padding: 13px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 14px;" />
+            </div>
+
+            @if (profile.Role == Role.Student)
+            {
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <label style="font-size: 14px; font-weight: 600; color: #334155;">
+                        Year
+                    </label>
+                    <input type="range" min="1" max="5" required @bind="year"
+                           style="width: 100%; accent-color: #4f46e5; cursor: pointer;" />
+
+                    <span style="color: #64748b; font-size: 13px;">
+                        Selected year: @year
+                    </span>
+                </div>   
+            }
+            
+
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <label style="font-size: 14px; font-weight: 600; color: #334155;">
+                    About you
+                </label>
+
+                <input type="text" required @bind="note"
+                       style="width: 100%; box-sizing: border-box; padding: 13px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 14px;" />
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <label style="font-size: 14px; font-weight: 600; color: #334155;">
+                    Avatar color
+                </label>
+
+                <input type="color" required @bind="avatarColorHex"
+                       style="width: 52px; height: 44px; padding: 4px; border: 1px solid #e2e8f0; border-radius: 10px; cursor: pointer;" />
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                <p style="margin: 0; padding: 12px 14px; border-radius: 10px; background: #fff1f2; color: #be123c; font-size: 14px;">
+                    @errorMessage
+                </p>
+            }
+
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <button type="submit"
+                        style="padding: 13px 22px; border: none; border-radius: 10px; background: #4f46e5; color: #ffffff; font-size: 14px; font-weight: 600; cursor: pointer;">
+                    Save changes
+                </button>
+
+                <a href="@($"/profile/{profile.UserId}")"
+                   style="display: inline-block; padding: 12px 20px; border: 1px solid #cbd5e1; border-radius: 10px; color: #475569; background: #ffffff; font-size: 14px; font-weight: 600; text-decoration: none;">
+                    Cancel
+                </a>
+            </div>
+
+        </form>
+    </div>
+}
+
+@code {
+    private Profile? profile;
+
+    private string displayName = string.Empty;
+    private int year;
+    private string note = string.Empty;
+    private string avatarColorHex = "#4f46e5";
+
+    private string? errorMessage;
+
+    protected override void OnInitialized()
+    {
+        if (CurrentUser.CurrentUserId == null)
+            return;
+
+        profile = Chat.GetProfileById(CurrentUser.CurrentUserId.Value);
+
+        if (profile == null)
+            return;
+
+        displayName = profile.DisplayName;
+        year = profile.Year;
+        note = profile.Note;
+        avatarColorHex = profile.AvatarColorHex;
+    }
+
+    private void Save()
+    {
+        if (CurrentUser.CurrentUserId == null || profile == null)
+            return;
+
+        errorMessage = null;
+
+        try
+        {
+            Chat.UpdateProfile(
+                CurrentUser.CurrentUserId.Value,
+                displayName,
+                year,
+                note,
+                avatarColorHex);
+
+            nav.NavigateTo($"/profile/{profile.UserId}");
+        }
+        catch (ArgumentException ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+}
