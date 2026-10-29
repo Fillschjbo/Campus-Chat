@@ -97,17 +97,20 @@ else
     private string draft = "";
     private string? error;
 
+    /// <summary>Subscribes to service events.</summary>
     protected override void OnInitialized()
     {
         CurrentUser.UserChanged += OnChanged;
         Chat.MessagesChanged += OnChanged;
     }
 
+    /// <summary>Loads the chat for the ID in the route.</summary>
     protected override void OnParametersSet()
     {
         Load();
     }
 
+    /// <summary>Loads the chat's messages and works out if it exists, if the user can read it and if they are an auditor.</summary>
     private void Load()
     {
         exists = false;
@@ -144,6 +147,7 @@ else
         }
     }
 
+    /// <summary>Sends the draft message and clears the input, or shows the error.</summary>
     private void Send()
     {
         if (CurrentUser.CurrentUserId is not int userId || isAuditor)
@@ -171,6 +175,7 @@ else
         }
     }
 
+    /// <summary>Handles a change event from the services by reloading on the renderer's thread.</summary>
     private void OnChanged()
     {
         _ = InvokeAsync(() =>
@@ -180,6 +185,7 @@ else
         });
     }
 
+    /// <summary>Unsubscribes from service events so the singleton does not keep this component alive.</summary>
     public void Dispose()
     {
         CurrentUser.UserChanged -= OnChanged;

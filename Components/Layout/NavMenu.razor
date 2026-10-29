@@ -64,6 +64,7 @@
     private int TotalUnread => unreadCounts.Values.Sum();
     
 
+    /// <summary>Loads the signed in user's profile and unread counts, or clears them when signed out.</summary>
     private void LoadUser()
     {
         if (CurrentUser.CurrentUserId is int userId)
@@ -78,6 +79,7 @@
         }
     }
     
+    /// <summary>Subscribes to service events and loads the current user.</summary>
     protected override void OnInitialized()
     {
         CurrentUser.UserChanged += OnStateChanged;
@@ -89,6 +91,7 @@
         LoadUser();
     }
     
+    /// <summary>Handles a change event from the services by reloading on the renderer's thread.</summary>
     private void OnStateChanged()
     {
         _ = InvokeAsync(() =>
@@ -98,6 +101,7 @@
         });
     }
     
+    /// <summary>Unsubscribes from service events so the singleton does not keep this component alive.</summary>
     public void Dispose()
     {
         CurrentUser.UserChanged -= OnStateChanged;

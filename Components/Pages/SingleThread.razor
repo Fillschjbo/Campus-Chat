@@ -182,6 +182,12 @@
             in this thread.
         </p>
     }
+    else if (currentProfile?.Role == Role.Auditor)
+    {
+        <p style="margin: 0; color: #64748b; font-size: 14px;">
+            Viewing as auditor, read-only.
+        </p>
+    }
     else
     {
         <h3 style="margin: 0 0 18px; font-size: 18px; font-weight: 700;">
@@ -302,6 +308,10 @@ private int? replyingTo;
     private string body = "";
     private string? postError;
 
+    /// <summary>
+    /// Subscribes to service events. Deliberately not <c>ReadStateChanged</c>: <see cref="Load"/> marks the
+    /// thread read, so listening to that event would reload forever.
+    /// </summary>
     protected override void OnInitialized()
     {
         CurrentUser.UserChanged += OnStateChanged;
@@ -309,11 +319,13 @@ private int? replyingTo;
         Chat.PostsChanged += OnStateChanged;
     }
 
+    /// <summary>Loads the thread for the ID in the route.</summary>
     protected override void OnParametersSet()
     {
         Load();
     }
 
+    /// <summary>Loads the thread, membership and posts, and marks the thread read if the user is a member.</summary>
     private void Load()
     {
         error = null;
@@ -355,6 +367,7 @@ private int? replyingTo;
         }
     }
 
+    /// <summary>Joins a private thread with the passcode typed into the form.</summary>
     private void JoinThread()
     {
         if (CurrentUser.CurrentUserId is not int userId)
@@ -377,6 +390,7 @@ private int? replyingTo;
         }
     }
 
+    /// <summary>Joins a public thread.</summary>
     private void JoinPublicThread()
     {
         if (CurrentUser.CurrentUserId is not int userId)
@@ -396,6 +410,7 @@ private int? replyingTo;
         }
     }
 
+    /// <summary>Leaves the thread.</summary>
     private void LeaveThread()
     {
         if (CurrentUser.CurrentUserId is not int userId)
@@ -412,6 +427,7 @@ private int? replyingTo;
         }
     }
 
+    /// <summary>Handles a change event from the services by reloading on the renderer's thread.</summary>
     private void OnStateChanged()
     {
         _ = InvokeAsync(() =>
@@ -421,6 +437,7 @@ private int? replyingTo;
         });
     }
 
+    /// <summary>Unsubscribes from service events so the singleton does not keep this component alive.</summary>
     public void Dispose()
     {
         CurrentUser.UserChanged -= OnStateChanged;
@@ -428,16 +445,21 @@ private int? replyingTo;
         Chat.PostsChanged -= OnStateChanged;
     }
     
+    /// <summary>Switches the post form to reply mode.</summary>
+    /// <param name="postId">The post being replied to.</param>
     private void StartReply(int postId)
     {
         replyingTo = postId;
     }
 
+    /// <summary>Switches the post form back to a new top level post.</summary>
     private void CancelReply()
     {
         replyingTo = null;
     }
 
+    /// <summary>Deletes one of the user's posts and reloads, or shows the error.</summary>
+    /// <param name="postId">The post to delete.</param>
     private Task DeletePost(int postId)
     {
         if (CurrentUser.CurrentUserId is not int userId)
@@ -467,6 +489,7 @@ private int? replyingTo;
     }
     
     
+    /// <summary>Publishes the post or reply in the form and clears it, or shows the error.</summary>
     private void SubmitPost()
     {
         if (CurrentUser.CurrentUserId is not int userId)

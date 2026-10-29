@@ -69,6 +69,7 @@ else
     private Profile? currentProfile;
     private Dictionary<int, string?> previews = [];
 
+    /// <summary>Subscribes to service events and loads the chat list.</summary>
     protected override void OnInitialized()
     {
         CurrentUser.UserChanged += OnChanged;
@@ -76,6 +77,7 @@ else
         Load();
     }
 
+    /// <summary>Loads the user's direct chats and the last message of each as a preview.</summary>
     private void Load()
     {
         chats = [];
@@ -106,6 +108,7 @@ else
         }
     }
 
+    /// <summary>Handles a change event from the services by reloading on the renderer's thread.</summary>
     private void OnChanged()
     {
         _ = InvokeAsync(() =>
@@ -115,6 +118,7 @@ else
         });
     }
 
+    /// <summary>Unsubscribes from service events so the singleton does not keep this component alive.</summary>
     public void Dispose()
     {
         CurrentUser.UserChanged -= OnChanged;

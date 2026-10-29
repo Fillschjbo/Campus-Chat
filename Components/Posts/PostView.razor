@@ -1,3 +1,4 @@
+@using CampusChat.Enums
 @inject ChatService Chat
 
 <article class="post-card">
@@ -25,7 +26,8 @@
         <p class="post-body">@Post.Body</p>
 
         <div class="post-actions">
-            @if (CurrentUserId.HasValue)
+            @if (CurrentUserId.HasValue &&
+                 Chat.GetProfileById(CurrentUserId.Value)?.Role != Role.Auditor)
             {
                 <button type="button"
                         class="reply-button"
@@ -84,9 +86,11 @@
     [Parameter]
     public EventCallback<int> OnDelete { get; set; }
 
+    /// <summary>Tells the parent page to reply to this post.</summary>
     private Task Reply()
         => OnReply.InvokeAsync(Post.PostId);
 
+    /// <summary>Tells the parent page to delete this post.</summary>
     private Task Delete()
         => OnDelete.InvokeAsync(Post.PostId);
 }
