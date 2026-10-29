@@ -1,0 +1,188 @@
+
+@page "/chats/{ChatId:int}"
+
+@inject ChatService Chat
+@inject CurrentUserService CurrentUser
+@implements IDisposable
+
+<h1>Direct chat</h1>
+
+@if (CurrentUser.CurrentUserId == null)
+{
+    <p>Sign in to see your messages.</p>
+    <a href="/signin">Sign in</a>
+}
+else if (!exists)
+{
+    <p>No conversation with that address.</p>
+    <a href="/chats">Back to messages</a>
+}
+else if (!canRead)
+{
+    <p>You don't have access to this conversation.</p>
+    <a href="/chats">Back to messages</a>
+}
+else
+{
+    <p style="padding:12px;background:#fff7ed;border-radius:8px;">
+        Messages in this chat can be read by the college's auditor.
+    </p>
+
+    @if (isAuditor)
+    {
+        <p style="padding:12px;background:#f1f5f9;border-radius:8px;">
+            Viewing as auditor, read-only.
+        </p>
+    }
+
+    <div style="display:flex;flex-direction:column;gap:12px;">
+        @if (messages.Count == 0)
+        {
+            <p>No messages yet.</p>
+        }
+        else
+        {
+            @foreach (var message in messages)
+            {
+                var sender = Chat.GetProfileById(message.SenderId);
+                var mine = message.SenderId == CurrentUser.CurrentUserId;
+
+                <div @key="message.MessageId"
+                     style="align-self:@(mine ? "flex-end" : "flex-start");
+                            max-width:80%;padding:12px 16px;
+                            border-radius:12px;
+                            background:@(mine ? "#e0e7ff" : "#f1f5f9");">
+
+                    <strong>@(sender?.DisplayName ?? "Unknown user")</strong>
+
+                    <p style="margin:6px 0;white-space:pre-wrap;">@message.Text</p>
+
+                    <small style="color:#64748b;">
+                        @message.SentAtUTC.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                    </small>
+                </div>
+            }
+        }
+    </div>
+
+    @if (!isAuditor)
+    {
+        <form @onsubmit="Send" @onsubmit:preventDefault="true"
+              style="margin-top:24px;display:flex;gap:8px;flex-wrap:wrap;">
+
+            <textarea @bind="draft"
+                      rows="3"
+                      maxlength="2000"
+                      placeholder="Write a message..."
+                      aria-label="Message text"
+                      style="flex:1;min-width:200px;padding:12px;"></textarea>
+
+            <button type="submit">Send</button>
+        </form>
+
+        @if (!string.IsNullOrWhiteSpace(error))
+        {
+            <p role="alert" style="color:#be123c;">@error</p>
+        }
+    }
+}
+
+@code {
+    [Parameter] public int ChatId { get; set; }
+
+    private bool exists;
+    private bool canRead;
+    private bool isAuditor;
+    private IReadOnlyList<CampusChat.Models.Message> messages = [];
+    private string draft = "";
+    private string? error;
+
+    protected override void OnInitialized()
+    {
+        CurrentUser.UserChanged += OnChanged;
+        Chat.MessagesChanged += OnChanged;
+    }
+
+    protected override void OnParametersSet()
+    {
+        Load();
+    }
+
+    private void Load()
+    {
+        exists = false;
+        canRead = false;
+        isAuditor = false;
+        messages = [];
+        error = null;
+
+        if (CurrentUser.CurrentUserId is not int userId)
+            return;
+
+        var chat = Chat.GetDirectChatById(ChatId);
+
+        if (chat == null)
+            return;
+
+        exists = true;
+
+        var profile = Chat.GetProfileById(userId);
+        isAuditor = profile?.Role == CampusChat.Enums.Role.Auditor;
+
+        try
+        {
+            messages = Chat.GetMessages(userId, ChatId);
+            canRead = true;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            canRead = false;
+        }
+        catch (KeyNotFoundException)
+        {
+            exists = false;
+        }
+    }
+
+    private void Send()
+    {
+        if (CurrentUser.CurrentUserId is not int userId || isAuditor)
+            return;
+
+        try
+        {
+            Chat.SendMessage(userId, ChatId, draft);
+            draft = "";
+            error = null;
+            Load();
+        }
+        catch (ArgumentException ex)
+        {
+            error = ex.Message;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            error = ex.Message;
+        }
+        catch (KeyNotFoundException)
+        {
+            error = "This conversation no longer exists.";
+            Load();
+        }
+    }
+
+    private void OnChanged()
+    {
+        _ = InvokeAsync(() =>
+        {
+            Load();
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose()
+    {
+        CurrentUser.UserChanged -= OnChanged;
+        Chat.MessagesChanged -= OnChanged;
+    }
+}

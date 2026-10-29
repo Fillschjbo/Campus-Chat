@@ -22,6 +22,7 @@ public class ChatService
     public event Action? MembershipChanged;
     public event Action? PostsChanged;
     public event Action? ReadStateChanged;
+    public event Action? MessagesChanged;
     
 
     public ChatService()
@@ -436,6 +437,112 @@ public class ChatService
         if (changed)
         {
             ReadStateChanged?.Invoke();
+        }
+    }
+    
+    private bool CanReadDirectChat(int? callerId, int chatId)
+    {
+        var chat = _directChats.FirstOrDefault(c => c.DirectChatId == chatId);
+
+        if (chat == null)
+            throw new KeyNotFoundException(
+                $"No direct chat with ID {chatId} exists.");
+
+        if (callerId == null)
+            return false;
+
+        var profile = _profiles.FirstOrDefault(
+            p => p.UserId == callerId.Value);
+
+        if (profile?.Role == Role.Auditor)
+            return true;
+
+        return chat.UserIdLowest == callerId.Value ||
+               chat.UserIdHighest == callerId.Value;
+    }
+    
+    public IReadOnlyList<Message> GetMessages(int? callerId, int chatId)
+    {
+        lock (_lock)
+        {
+            if (!CanReadDirectChat(callerId, chatId))
+                throw new UnauthorizedAccessException(
+                    "You are not allowed to read this direct chat.");
+
+            return _messages.Where(message => message.ChatId == chatId).OrderBy(message => message.SentAtUTC).ToList();
+        }
+    }
+    
+    public IReadOnlyList<DirectChat> GetDirectChatsFor(int callerId)
+    {
+        lock (_lock)
+        {
+            var profile = _profiles.FirstOrDefault(profile => profile.UserId == callerId);
+
+            if (profile == null)
+                throw new KeyNotFoundException($"No user with ID {callerId} exists.");
+
+            var chats = profile.Role == Role.Auditor ? _directChats.ToList() : _directChats.Where(chat => chat.UserIdLowest == callerId || chat.UserIdHighest == callerId).ToList();
+
+            return chats
+                .OrderByDescending(chat => _messages.Where(m => m.ChatId == chat.DirectChatId).Select(m => (DateTime?)m.SentAtUTC).Max()).ToList();
+        }
+    }
+    
+    public DirectChat GetOrCreateDirectChat(int callerId, int otherUserId)
+    {
+        lock (_lock)
+        {
+            if (!_profiles.Any(p => p.UserId == callerId))
+                throw new KeyNotFoundException($"No user with ID {callerId} exists.");
+
+            if (!_profiles.Any(p => p.UserId == otherUserId))
+                throw new KeyNotFoundException($"No user with ID {otherUserId} exists.");
+
+            if (callerId == otherUserId)
+                throw new ArgumentException("You cannot start a direct chat with yourself.", nameof(otherUserId));
+
+            var existing = _directChats.FirstOrDefault(chat => chat.UserIdLowest == Math.Min(callerId, otherUserId) && chat.UserIdHighest == Math.Max(callerId, otherUserId));
+
+            if (existing != null)
+                return existing;
+
+            var chat = new DirectChat(_nextDirectChatId++, callerId, otherUserId);
+
+            _directChats.Add(chat);
+
+            return chat;
+        }
+    }
+    
+    public void SendMessage(int callerId, int chatId, string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            throw new ArgumentException("Message cannot be empty.", nameof(text));
+
+        lock (_lock)
+        {
+            if (!CanReadDirectChat(callerId, chatId))
+                throw new UnauthorizedAccessException("You are not allowed to send messages in this direct chat.");
+
+            var profile = _profiles.FirstOrDefault(profile => profile.UserId == callerId);
+
+            if (profile?.Role == Role.Auditor)
+                throw new UnauthorizedAccessException("Auditors can read direct chats but cannot send messages.");
+
+            var message = new Message(ChatId: chatId, SenderId: callerId, MessageId: _nextMessageId++, Text: text.Trim(), SentAtUTC: DateTime.UtcNow);
+
+            _messages.Add(message);
+        }
+
+        MessagesChanged?.Invoke();
+    }
+    
+    public DirectChat? GetDirectChatById(int chatId)
+    {
+        lock (_lock)
+        {
+            return _directChats.FirstOrDefault(c => c.DirectChatId == chatId);
         }
     }
 }
