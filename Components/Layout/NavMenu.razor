@@ -1,4 +1,11 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿@inject ChatService chat
+@inject CurrentUserService CurrentUser
+@inject NavigationManager nav
+
+@implements IDisposable
+
+
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">CampusChat</a>
     </div>
@@ -8,23 +15,101 @@
 
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
-            </NavLink>
-        </div>
+        @if (user == null)
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="signin">Sign in</NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="signup">Sign up</NavLink>
+            </div>
+        }
+        else
+        {
+            <div class="nav-item px-3">
+                <h3 style="color: whitesmoke;">Logged in as @user.DisplayName</h3>
+                
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="/">
+                        Threads
+                        @if (TotalUnread > 0)
+                        {
+                            <span style="display: inline-flex; align-items: center; justify-content: center; margin-left: 6px; padding: 2px 7px; min-height: 18px; box-sizing: border-box; background: #4f46e5; color: white; border-radius: 999px; font-size: 11px; line-height: 1; font-weight: 700; vertical-align: middle;">
+                                @TotalUnread
+                            </span>
+                        }
+                    </NavLink>
+                </div>
+                
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="chats">
+                        Messages
+                    </NavLink>
+                </div>
+                
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="@($"/profile/{user.UserId}")">My Profile</NavLink>
+                </div>
+                <button @onclick="CurrentUser.SignOutAsync" style="height: 28px; width: 80%;">Sign out</button>
+            </div>
+            
+        }
+        
     </nav>
 </div>
+
+@code {
+    private Profile? user;
+    private IReadOnlyDictionary<int, int> unreadCounts = new Dictionary<int, int>();
+    private int TotalUnread => unreadCounts.Values.Sum();
+    
+
+    /// <summary>Loads the signed in user's profile and unread counts, or clears them when signed out.</summary>
+    private void LoadUser()
+    {
+        if (CurrentUser.CurrentUserId is int userId)
+        {
+            user = chat.GetProfileById(userId);
+            unreadCounts = chat.GetUnreadCounts(userId);
+        }
+        else
+        {
+            user = null;
+            unreadCounts = new Dictionary<int, int>();
+        }
+    }
+    
+    /// <summary>Subscribes to service events and loads the current user.</summary>
+    protected override void OnInitialized()
+    {
+        CurrentUser.UserChanged += OnStateChanged;
+        chat.ProfileChanged += OnStateChanged;
+        chat.PostsChanged += OnStateChanged;
+        chat.ReadStateChanged += OnStateChanged;
+        chat.MembershipChanged += OnStateChanged;
+        
+        LoadUser();
+    }
+    
+    /// <summary>Handles a change event from the services by reloading on the renderer's thread.</summary>
+    private void OnStateChanged()
+    {
+        _ = InvokeAsync(() =>
+        {
+            LoadUser();
+            StateHasChanged();
+        });
+    }
+    
+    /// <summary>Unsubscribes from service events so the singleton does not keep this component alive.</summary>
+    public void Dispose()
+    {
+        CurrentUser.UserChanged -= OnStateChanged;
+        chat.ProfileChanged -= OnStateChanged;
+        chat.PostsChanged -= OnStateChanged;
+        chat.ReadStateChanged -= OnStateChanged;
+        chat.MembershipChanged -= OnStateChanged;
+    }
+
+}
 

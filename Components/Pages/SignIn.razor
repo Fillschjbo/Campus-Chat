@@ -1,0 +1,67 @@
+@page "/signin"
+
+@inject CurrentUserService CurrentUser
+@inject ChatService Chat
+@inject NavigationManager nav
+
+
+
+<h2 style="margin: 0 0 8px; font-size: 22px; font-weight: 700; letter-spacing: -0.3px; color: #1e293b; font-family: Inter, Arial, sans-serif;">
+    Profiles
+</h2>
+<p style="margin: 0 0 20px; color: #64748b; font-size: 14px; font-family: Inter, Arial, sans-serif;">
+    Select a profile to sign in.
+</p>
+
+@if (profiles.Count == 0)
+{
+    <div style="max-width: 800px; padding: 32px 20px; background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 14px; text-align: center; font-family: Inter, Arial, sans-serif;">
+        <p style="margin: 0; color: #64748b; font-size: 14px;">
+            No profiles found
+        </p>
+    </div>
+}
+else
+{
+    @foreach (var profile in profiles)
+    {
+        <button @onclick="()=> SignInAs(profile.UserId)"
+                style="width: 100%; max-width: 800px; box-sizing: border-box; display: flex; align-items: center; gap: 16px; margin-bottom: 12px; padding: 18px 20px; text-align: left; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; cursor: pointer; color: #1e293b; font-family: Inter, Arial, sans-serif;">
+
+            <div style="width: 46px; height: 46px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: @profile.AvatarColorHex; color: #ffffff; font-size: 18px; font-weight: 700;">
+                @profile.DisplayName.Substring(0, 1).ToUpper()
+            </div>
+
+            <div style="flex: 1; min-width: 0;">
+                <div style="margin-bottom: 4px; font-size: 15px; font-weight: 700; overflow-wrap: anywhere;">
+                    @profile.DisplayName
+                </div>
+                <div style="margin-bottom: 4px; color: #64748b; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere;">
+                    @profile.Note
+                </div>
+                <div style="color: #4f46e5; font-size: 12px; font-weight: 600;">
+                    @profile.Role
+                </div>
+            </div>
+
+            <div style="width: 10px; height: 10px; flex-shrink: 0; background: @profile.AvatarColorHex; border-radius: 50%;"></div>
+
+        </button>
+    }
+}
+
+@code {
+    private IReadOnlyList<Profile> profiles = [];
+    
+    /// <summary>Loads every profile to choose from.</summary>
+    protected override void OnInitialized() =>
+        profiles =  Chat.GetAllProfiles();
+
+    /// <summary>Signs in as the chosen profile and goes to the front page.</summary>
+    /// <param name="UserId">The profile to sign in as.</param>
+    protected async Task SignInAs(int UserId)
+    {
+        await CurrentUser.SignInAsync(UserId);
+        nav.NavigateTo("/");
+    }
+}

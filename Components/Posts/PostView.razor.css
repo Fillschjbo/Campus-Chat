@@ -1,0 +1,106 @@
+.post-card {
+    padding: 20px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    min-width: 0;
+}
+
+.post-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.author-name {
+    color: #1e293b;
+    font-size: 14px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.post-time {
+    color: #94a3b8;
+    font-size: 12px;
+}
+
+.post-title {
+    margin: 0 0 10px;
+    color: #1e293b;
+    font-size: 17px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.post-body {
+    margin: 0;
+    color: #475569;
+    font-size: 14px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.deleted-message {
+    margin: 0;
+    color: #94a3b8;
+    font-size: 14px;
+    font-style: italic;
+}
+
+.post-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.reply-button,
+.delete-button {
+    padding: 7px 11px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-family: Inter, Arial, sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.reply-button {
+    color: #4f46e5;
+}
+
+.reply-button:hover {
+    background: #eef2ff;
+}
+
+.delete-button {
+    color: #be123c;
+}
+
+.delete-button:hover {
+    background: #fff1f2;
+}
+
+.replies {
+    margin: 12px 0 0 20px;
+    padding-left: 16px;
+    border-left: 2px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+@media (max-width: 480px) {
+    .post-card {
+        padding: 16px;
+    }
+
+    .replies {
+        margin-left: 8px;
+        padding-left: 10px;
+    }
+}

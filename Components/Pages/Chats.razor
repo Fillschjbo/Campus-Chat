@@ -1,0 +1,127 @@
+
+@page "/chats"
+
+@inject ChatService Chat
+@inject CurrentUserService CurrentUser
+@implements IDisposable
+
+<h1>Messages</h1>
+
+@if (CurrentUser.CurrentUserId == null)
+{
+    <p>Sign in to see your messages.</p>
+    <a href="/signin">Sign in</a>
+}
+else if (chats.Count == 0)
+{
+    <p>No conversations yet.</p>
+}
+else
+{
+    @foreach (var conversation in chats)
+    {
+        var first = Chat.GetProfileById(conversation.UserIdLowest);
+        var second = Chat.GetProfileById(conversation.UserIdHighest);
+
+        var isAuditor = currentProfile?.Role == CampusChat.Enums.Role.Auditor;
+
+        var other = conversation.UserIdLowest == CurrentUser.CurrentUserId ? second : first;
+
+        var preview = previews.GetValueOrDefault(conversation.DirectChatId);
+
+        <a @key="conversation.DirectChatId"
+           href="@($"/chats/{conversation.DirectChatId}")"
+           style="display:flex; align-items:center; gap:12px; padding:16px;
+                  margin-bottom:12px; border:1px solid #e2e8f0;
+                  border-radius:12px; text-decoration:none; color:#1e293b;">
+
+            @if (isAuditor)
+            {
+                <span style="width:12px;height:12px;border-radius:50%;
+                    background:@(first?.AvatarColorHex ?? "#94a3b8");"></span>
+
+                <div>
+                    <strong>@(first?.DisplayName ?? "Unknown user")
+                        ↔ @(second?.DisplayName ?? "Unknown user")</strong>
+                    <p style="margin:4px 0 0;color:#64748b;">
+                        @(preview ?? "No messages yet")
+                    </p>
+                </div>
+            }
+            else
+            {
+                <span style="width:12px;height:12px;border-radius:50%;
+                    background:@(other?.AvatarColorHex ?? "#94a3b8");"></span>
+
+                <div>
+                    <strong>@(other?.DisplayName ?? "Unknown user")</strong>
+                    <p style="margin:4px 0 0;color:#64748b;">
+                        @(preview ?? "No messages yet")
+                    </p>
+                </div>
+            }
+        </a>
+    }
+}
+
+@code {
+    private IReadOnlyList<CampusChat.Models.DirectChat> chats = [];
+    private Profile? currentProfile;
+    private Dictionary<int, string?> previews = [];
+
+    /// <summary>Subscribes to service events and loads the chat list.</summary>
+    protected override void OnInitialized()
+    {
+        CurrentUser.UserChanged += OnChanged;
+        Chat.MessagesChanged += OnChanged;
+        Load();
+    }
+
+    /// <summary>Loads the user's direct chats and the last message of each as a preview.</summary>
+    private void Load()
+    {
+        chats = [];
+        previews.Clear();
+        currentProfile = null;
+
+        if (CurrentUser.CurrentUserId is not int userId)
+            return;
+
+        currentProfile = Chat.GetProfileById(userId);
+
+        try
+        {
+            chats = Chat.GetDirectChatsFor(userId);
+
+            foreach (var conversation in chats)
+            {
+                var messages = Chat.GetMessages(
+                    userId, conversation.DirectChatId);
+
+                var last = messages.LastOrDefault();
+                previews[conversation.DirectChatId] = last == null ? null : last.Text;
+            }
+        }
+        catch (KeyNotFoundException)
+        {
+            chats = [];
+        }
+    }
+
+    /// <summary>Handles a change event from the services by reloading on the renderer's thread.</summary>
+    private void OnChanged()
+    {
+        _ = InvokeAsync(() =>
+        {
+            Load();
+            StateHasChanged();
+        });
+    }
+
+    /// <summary>Unsubscribes from service events so the singleton does not keep this component alive.</summary>
+    public void Dispose()
+    {
+        CurrentUser.UserChanged -= OnChanged;
+        Chat.MessagesChanged -= OnChanged;
+    }
+}

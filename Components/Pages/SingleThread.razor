@@ -1,0 +1,524 @@
+@page "/threads/{Id:int}"
+
+@inject ChatService Chat
+@inject CurrentUserService CurrentUser
+
+@using CampusChat.Enums
+@using CampusChat.Components.Posts
+@implements IDisposable
+
+<div style="min-height: 100vh; padding: 40px 20px; background: #f5f7fb; font-family: Inter, Arial, sans-serif; color: #1e293b;">
+
+    <div style="max-width: 800px; margin: 0 auto;">
+
+        <a href="/"
+           style="display: inline-block; margin-bottom: 24px; color: #4f46e5; font-size: 14px; font-weight: 600; text-decoration: none;">
+            ← All threads
+        </a>
+
+        @if (thread == null)
+        {
+            <div style="padding: 40px 24px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; text-align: center;">
+                <h2 style="margin: 0 0 12px; font-size: 22px; font-weight: 700;">
+                    No thread with that address.
+                </h2>
+                <p style="margin: 0; color: #64748b; font-size: 14px;">
+                    The thread may not exist or may have been removed.
+                </p>
+                <a href="/"
+                   style="display: inline-block; margin-top: 20px; padding: 11px 16px; background: #4f46e5; color: white; border-radius: 10px; font-size: 14px; font-weight: 600; text-decoration: none;">
+                    Browse threads
+                </a>
+            </div>
+        }
+        else
+        {
+            <div style="margin-bottom: 28px; padding: 28px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 18px; box-shadow: 0 4px 20px rgba(15,23,42,0.03);">
+
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+
+                    <div style="min-width: 0; flex: 1;">
+                        <h2 style="margin: 0 0 10px; font-size: 28px; font-weight: 700; letter-spacing: -0.5px; overflow-wrap: anywhere;">
+                            @thread.Name
+                        </h2>
+
+                        <p style="margin: 0; color: #64748b; font-size: 14px; line-height: 1.6;">
+                            Join the conversation and share your thoughts.
+                        </p>
+                    </div>
+
+                    @if (thread.IsPrivate)
+                    {
+                        <span style="flex-shrink: 0; padding: 7px 11px; background: #fff7ed; color: #9a3412; border-radius: 8px; font-size: 12px; font-weight: 700;">
+                            🔒 Private
+                        </span>
+                    }
+                    else
+                    {
+                        <span style="flex-shrink: 0; padding: 7px 11px; background: #ecfdf5; color: #047857; border-radius: 8px; font-size: 12px; font-weight: 700;">
+                            Public
+                        </span>
+                    }
+
+                </div>
+
+                @if (!canRead)
+                {
+                    <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #e2e8f0;">
+
+                        @if (CurrentUser.CurrentUserId == null)
+                        {
+                            <p style="margin: 0; color: #64748b; font-size: 14px; line-height: 1.6;">
+                                Sign in to join this private thread and read its posts.
+                            </p>
+
+                            <a href="/signin"
+                               style="display: inline-block; margin-top: 14px; padding: 11px 16px; background: #4f46e5; color: white; border-radius: 10px; font-size: 14px; font-weight: 600; text-decoration: none;">
+                                Sign in to join
+                            </a>
+                        }
+                        else
+                        {
+                            <p style="margin: 0 0 16px; color: #64748b; font-size: 14px; line-height: 1.6;">
+                                Enter the access code to join this private thread.
+                            </p>
+
+                            <form @onsubmit="JoinThread" @onsubmit:preventDefault="true"
+                                  style="display: flex; gap: 10px; flex-wrap: wrap;">
+
+                                <input type="password"
+                                       @bind="code"
+                                       placeholder="Access code"
+                                       aria-label="Private thread access code"
+                                       required
+                                       style="flex: 1; min-width: 180px; box-sizing: border-box; padding: 12px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-family: Inter, Arial, sans-serif; font-size: 14px;" />
+
+                                <button type="submit"
+                                        style="padding: 12px 18px; background: #4f46e5; color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;">
+                                    Join thread
+                                </button>
+                            </form>
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(error))
+                        {
+                            <p role="alert"
+                               style="margin: 14px 0 0; padding: 12px 14px; background: #fff1f2; color: #be123c; border-radius: 10px; font-size: 14px;">
+                                @error
+                            </p>
+                        }
+                    </div>
+                }
+                else
+                {
+                    @if (CurrentUser.CurrentUserId is int userId &&
+                         (isMember || currentProfile?.Role != Role.Auditor))
+                    {
+                        <div style="margin-top: 22px;">
+                            @if (isMember)
+                            {
+                                <button @onclick="LeaveThread"
+                                        style="padding: 10px 15px; background: #ffffff; color: #475569; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer;">
+                                    Leave thread
+                                </button>
+                            }
+                            else
+                            {
+                                <button @onclick="JoinPublicThread"
+                                        style="padding: 10px 15px; background: #4f46e5; color: white; border: none; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer;">
+                                    Join thread
+                                </button>
+                            }
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(error))
+                    {
+                        <p role="alert"
+                           style="margin: 14px 0 0; padding: 12px 14px; background: #fff1f2; color: #be123c; border-radius: 10px; font-size: 14px;">
+                            @error
+                        </p>
+                    }
+                }
+
+            </div>
+
+            @if (canRead)
+            {
+                <div style="margin-bottom: 16px;">
+                    <h3 style="margin: 0; font-size: 20px; font-weight: 700;">
+                        Posts
+                    </h3>
+                </div>
+                
+                @if (replyingTo.HasValue)
+                {
+                    var replyTarget = Chat.GetProfileById(
+                        posts.FirstOrDefault(p => p.PostId == replyingTo.Value)?.AuthorId ?? 0);
+
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; padding: 12px 16px; background: #eef2ff; border: 1px solid #e0e7ff; border-radius: 10px;">
+                        <span style="color: #4338ca; font-size: 14px;">
+                            Replying to @(replyTarget?.DisplayName ?? "Unknown user")
+                        </span>
+
+                        <button type="button"
+                                @onclick="CancelReply"
+                                aria-label="Cancel reply"
+                                style="border: none; background: transparent; color: #4338ca; font-size: 18px; cursor: pointer;">
+                            ×
+                        </button>
+                    </div>
+                }
+                
+                <div style="margin-bottom: 24px; padding: 24px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px;">
+
+    @if (CurrentUser.CurrentUserId == null)
+    {
+        <p style="margin: 0; color: #64748b; font-size: 14px;">
+            <a href="/signin"
+               style="color: #4f46e5; font-weight: 600; text-decoration: none;">
+                Sign in to post
+            </a>
+            in this thread.
+        </p>
+    }
+    else if (currentProfile?.Role == Role.Auditor)
+    {
+        <p style="margin: 0; color: #64748b; font-size: 14px;">
+            Viewing as auditor, read-only.
+        </p>
+    }
+    else
+    {
+        <h3 style="margin: 0 0 18px; font-size: 18px; font-weight: 700;">
+            Write a post
+        </h3>
+
+        @if (replyingTo.HasValue)
+        {
+            var parentPost = posts.FirstOrDefault(
+                p => p.PostId == replyingTo.Value);
+
+            var replyAuthor = parentPost == null
+                ? null
+                : Chat.GetProfileById(parentPost.AuthorId);
+
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; padding: 12px 14px; background: #eef2ff; border: 1px solid #e0e7ff; border-radius: 10px;">
+                <span style="color: #4338ca; font-size: 14px;">
+                    Replying to @(replyAuthor?.DisplayName ?? "Unknown user")
+                </span>
+
+                <button type="button"
+                        @onclick="CancelReply"
+                        aria-label="Cancel reply"
+                        style="border: none; background: transparent; color: #4338ca; font-size: 18px; cursor: pointer;">
+                    ×
+                </button>
+            </div>
+        }
+
+        <form @onsubmit="SubmitPost"
+              @onsubmit:preventDefault="true">
+
+            @if (!replyingTo.HasValue)
+            {
+                <label for="post-title"
+                       style="display: block; margin-bottom: 8px; color: #334155; font-size: 13px; font-weight: 600;">
+                    Title (optional)
+                </label>
+
+                <input id="post-title"
+                       type="text"
+                       @bind="title"
+                       maxlength="200"
+                       placeholder="Give your post a title"
+                       style="width: 100%; box-sizing: border-box; margin-bottom: 16px; padding: 12px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-family: Inter, Arial, sans-serif; font-size: 14px;" />
+            }
+
+            <label for="post-body"
+                   style="display: block; margin-bottom: 8px; color: #334155; font-size: 13px; font-weight: 600;">
+                @((replyingTo.HasValue) ? "Your reply" : "Message")
+            </label>
+
+            <textarea id="post-body"
+                      @bind="body"
+                      rows="4"
+                      maxlength="2000"
+                      placeholder="Share your thoughts..."
+                      style="width: 100%; box-sizing: border-box; resize: vertical; margin-bottom: 14px; padding: 12px 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-family: Inter, Arial, sans-serif; font-size: 14px; line-height: 1.6;">
+            </textarea>
+
+            @if (!string.IsNullOrWhiteSpace(postError))
+            {
+                <p role="alert"
+                   style="margin: 0 0 14px; padding: 12px 14px; background: #fff1f2; color: #be123c; border-radius: 10px; font-size: 14px;">
+                    @postError
+                </p>
+            }
+
+            <button type="submit"
+                    style="padding: 11px 18px; background: #4f46e5; color: #ffffff; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;">
+                @((replyingTo.HasValue) ? "Send reply" : "Publish post")
+            </button>
+        </form>
+    }
+</div>
+
+                @if (posts.Count == 0)
+                {
+                    <div style="padding: 36px 24px; background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 16px; text-align: center;">
+                        <h3 style="margin: 0 0 8px; font-size: 18px; font-weight: 700;">
+                            No posts yet. Be the first.
+                        </h3>
+                        <p style="margin: 0; color: #64748b; font-size: 14px;">
+                            Start the conversation when you're ready.
+                        </p>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var post in posts.Where(p => p.ParentPostId == null))
+                    {
+                        <PostView @key="post.PostId"
+                                  Post="post"
+                                  AllPosts="posts"
+                                  CurrentUserId="CurrentUser.CurrentUserId"
+                                  OnReply="StartReply"
+                                  OnDelete="DeletePost" />
+                    }
+                }
+            }
+        }
+    </div>
+</div>
+
+@code
+{
+[Parameter] public int Id {get; set; }
+private int? replyingTo;
+    
+    private ChatThread? thread;
+    private Profile? currentProfile;
+    private IReadOnlyList<Post> posts = [];
+    private bool canRead;
+    private bool isMember;
+    private string code = "";
+    private string? error;
+    private string title = "";
+    private string body = "";
+    private string? postError;
+
+    /// <summary>
+    /// Subscribes to service events. Deliberately not <c>ReadStateChanged</c>: <see cref="Load"/> marks the
+    /// thread read, so listening to that event would reload forever.
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        CurrentUser.UserChanged += OnStateChanged;
+        Chat.MembershipChanged += OnStateChanged;
+        Chat.PostsChanged += OnStateChanged;
+    }
+
+    /// <summary>Loads the thread for the ID in the route.</summary>
+    protected override void OnParametersSet()
+    {
+        Load();
+    }
+
+    /// <summary>Loads the thread, membership and posts, and marks the thread read if the user is a member.</summary>
+    private void Load()
+    {
+        error = null;
+        thread = Chat.GetChatThreadById(Id);
+        posts = [];
+        canRead = false;
+        isMember = false;
+        currentProfile = null;
+
+        if (thread == null)
+            return;
+
+        if (CurrentUser.CurrentUserId is int userId)
+        {
+            currentProfile = Chat.GetProfileById(userId);
+            isMember = Chat.IsMember(userId, Id);
+        }
+
+        try
+        {
+            posts = Chat.GetPosts(CurrentUser.CurrentUserId, Id);
+            canRead = true;
+            
+            if (CurrentUser.CurrentUserId is int callerId && isMember)
+            {
+                Chat.MarkThreadRead(callerId, Id);
+            }
+            
+        }
+        catch (UnauthorizedAccessException)
+        {
+            canRead = false;
+            posts = [];
+        }
+        catch (KeyNotFoundException)
+        {
+            thread = null;
+            posts = [];
+        }
+    }
+
+    /// <summary>Joins a private thread with the passcode typed into the form.</summary>
+    private void JoinThread()
+    {
+        if (CurrentUser.CurrentUserId is not int userId)
+            return;
+
+        try
+        {
+            Chat.JoinChatThread(userId, Id, code);
+            code = "";
+            error = null;
+            Load();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            error = ex.Message;
+        }
+        catch (KeyNotFoundException ex)
+        {
+            error = ex.Message;
+        }
+    }
+
+    /// <summary>Joins a public thread.</summary>
+    private void JoinPublicThread()
+    {
+        if (CurrentUser.CurrentUserId is not int userId)
+            return;
+
+        try
+        {
+            Chat.JoinChatThread(userId, Id, null);
+            error = null;
+            Load();
+        }
+        catch (Exception ex) when (
+            ex is UnauthorizedAccessException ||
+            ex is KeyNotFoundException)
+        {
+            error = ex.Message;
+        }
+    }
+
+    /// <summary>Leaves the thread.</summary>
+    private void LeaveThread()
+    {
+        if (CurrentUser.CurrentUserId is not int userId)
+            return;
+        try
+        {
+            Chat.LeaveThread(userId, Id);
+            error = null;
+            Load();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            error = ex.Message;
+        }
+    }
+
+    /// <summary>Handles a change event from the services by reloading on the renderer's thread.</summary>
+    private void OnStateChanged()
+    {
+        _ = InvokeAsync(() =>
+        {
+            Load();
+            StateHasChanged();
+        });
+    }
+
+    /// <summary>Unsubscribes from service events so the singleton does not keep this component alive.</summary>
+    public void Dispose()
+    {
+        CurrentUser.UserChanged -= OnStateChanged;
+        Chat.MembershipChanged -= OnStateChanged;
+        Chat.PostsChanged -= OnStateChanged;
+    }
+    
+    /// <summary>Switches the post form to reply mode.</summary>
+    /// <param name="postId">The post being replied to.</param>
+    private void StartReply(int postId)
+    {
+        replyingTo = postId;
+    }
+
+    /// <summary>Switches the post form back to a new top level post.</summary>
+    private void CancelReply()
+    {
+        replyingTo = null;
+    }
+
+    /// <summary>Deletes one of the user's posts and reloads, or shows the error.</summary>
+    /// <param name="postId">The post to delete.</param>
+    private Task DeletePost(int postId)
+    {
+        if (CurrentUser.CurrentUserId is not int userId)
+        {
+            error = "Sign in to delete your posts.";
+            return Task.CompletedTask;
+        }
+
+        try
+        {
+            Chat.DeletePost(userId, postId);
+            replyingTo = null;
+            Load();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            error = ex.Message;
+        }
+        catch (KeyNotFoundException ex)
+        {
+            error = ex.Message;
+            Load();
+            error = ex.Message;
+        }
+
+        return Task.CompletedTask;
+    }
+    
+    
+    /// <summary>Publishes the post or reply in the form and clears it, or shows the error.</summary>
+    private void SubmitPost()
+    {
+        if (CurrentUser.CurrentUserId is not int userId)
+            return;
+
+        try
+        {
+            Chat.CreatePost(userId, Id, title, body, replyingTo);
+
+            title = "";
+            body = "";
+            replyingTo = null;
+            postError = null;
+
+            Load();
+        }
+        catch (ArgumentException ex)
+        {
+            postError = ex.Message;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            postError = ex.Message;
+        }
+        catch (KeyNotFoundException ex)
+        {
+            postError = ex.Message;
+            Load();
+        }
+    }
+
+}
