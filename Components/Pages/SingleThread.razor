@@ -336,6 +336,12 @@ private int? replyingTo;
         {
             posts = Chat.GetPosts(CurrentUser.CurrentUserId, Id);
             canRead = true;
+            
+            if (CurrentUser.CurrentUserId is int callerId && isMember)
+            {
+                Chat.MarkThreadRead(callerId, Id);
+            }
+            
         }
         catch (UnauthorizedAccessException)
         {

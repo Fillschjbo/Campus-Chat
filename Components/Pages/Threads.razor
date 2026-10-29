@@ -53,6 +53,13 @@
                             <span style="font-size: 15px; font-weight: 600; overflow-wrap: anywhere;">
                                 @thread.Name
                             </span>
+                            
+                            @if (unreadCounts.TryGetValue(thread.ThreadId, out var count) && count > 0)
+                            {
+                                <span style="flex-shrink: 0; padding: 5px 9px; background: #4f46e5; color: #ffffff; border-radius: 999px; font-size: 12px; font-weight: 700;">
+                                    @count unread
+                                </span>
+                            }
 
                             @if (thread.IsPrivate)
                             {
@@ -114,6 +121,13 @@
                                 Open conversation →
                             </div>
                         </div>
+                        
+                        @if (unreadCounts.TryGetValue(thread.ThreadId, out var count) && count > 0)
+                        {
+                            <span style="flex-shrink: 0; padding: 5px 9px; background: #4f46e5; color: #ffffff; border-radius: 999px; font-size: 12px; font-weight: 700;">
+                                @count unread
+                            </span>
+                        }
 
                         @if (thread.IsPrivate)
                         {
@@ -132,18 +146,34 @@
     private string query = "";
     private IReadOnlyList<ChatThread> threads = [];
     private IReadOnlyList<ChatThread> myThreads = [];
+    private IReadOnlyDictionary<int, int> unreadCounts = new Dictionary<int, int>();
 
     protected override void OnInitialized()
     {
-        CurrentUser.UserChanged += OnUserChanged;
-        Chat.MembershipChanged += OnMembershipChanged;
+        CurrentUser.UserChanged += OnStateChanged;
+        Chat.MembershipChanged += OnStateChanged;
+        Chat.PostsChanged += OnStateChanged;
+        Chat.ReadStateChanged += OnStateChanged;
 
         ReloadLists();
+        LoadUnreadCounts();
     }
 
     private void SearchThreads()
     {
         threads = Chat.GetAllThreads(query);
+    }
+    
+    private void LoadUnreadCounts()
+    {
+        if (CurrentUser.CurrentUserId is int userId)
+        {
+            unreadCounts = Chat.GetUnreadCounts(userId);
+        }
+        else
+        {
+            unreadCounts = new Dictionary<int, int>();
+        }
     }
 
     private void ReloadLists()
@@ -158,18 +188,10 @@
         {
             myThreads = [];
         }
+        LoadUnreadCounts();
     }
 
-    private void OnUserChanged()
-    {
-        _ = InvokeAsync(() =>
-        {
-            ReloadLists();
-            StateHasChanged();
-        });
-    }
-
-    private void OnMembershipChanged()
+    private void OnStateChanged()
     {
         _ = InvokeAsync(() =>
         {
@@ -180,7 +202,9 @@
 
     public void Dispose()
     {
-        CurrentUser.UserChanged -= OnUserChanged;
-        Chat.MembershipChanged -= OnMembershipChanged;
+        CurrentUser.UserChanged -= OnStateChanged;
+        Chat.MembershipChanged -= OnStateChanged;
+        Chat.PostsChanged -= OnStateChanged;
+        Chat.ReadStateChanged -= OnStateChanged;
     }
 }
