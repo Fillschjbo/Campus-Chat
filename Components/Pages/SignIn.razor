@@ -53,9 +53,12 @@ else
 @code {
     private IReadOnlyList<Profile> profiles = [];
     
+    /// <summary>Loads every profile to choose from.</summary>
     protected override void OnInitialized() =>
         profiles =  Chat.GetAllProfiles();
 
+    /// <summary>Signs in as the chosen profile and goes to the front page.</summary>
+    /// <param name="UserId">The profile to sign in as.</param>
     protected async Task SignInAs(int UserId)
     {
         await CurrentUser.SignInAsync(UserId);

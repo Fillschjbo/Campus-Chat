@@ -18,13 +18,21 @@ public class ChatService
     private int _nextPostId = 1;
     private int _nextDirectChatId = 1;
     private int _nextMessageId = 1;
+    /// <summary>Raised after a profile has been updated.</summary>
     public event Action? ProfileChanged;
+    /// <summary>Raised after a user joins or leaves a thread.</summary>
     public event Action? MembershipChanged;
+    /// <summary>Raised after a post is created or deleted.</summary>
     public event Action? PostsChanged;
+    /// <summary>Raised after a user's read marker for a thread moves.</summary>
     public event Action? ReadStateChanged;
+    /// <summary>Raised after a direct message is sent.</summary>
     public event Action? MessagesChanged;
     
 
+    /// <summary>
+    /// Creates the service and fills it with seed profiles, threads, posts, memberships and a direct chat.
+    /// </summary>
     public ChatService()
     {
         //Seed data
@@ -64,9 +72,9 @@ public class ChatService
     }
 
     /// <summary>
-    /// Gets all profiles
+    /// Gets all profiles.
     /// </summary>
-    /// <returns>A list of profiles or profiles when there are none. Not null</returns>
+    /// <returns>All profiles. Empty when there are none. Not null.</returns>
     public IReadOnlyList<Profile> GetAllProfiles()
     {
         lock (_lock)
@@ -75,6 +83,9 @@ public class ChatService
         }
     }
 
+    /// <summary>Finds a profile by its user ID.</summary>
+    /// <param name="profileId">The user ID to look up.</param>
+    /// <returns>The profile, or <c>null</c> if no user has that ID.</returns>
     public Profile? GetProfileById(int profileId)
     {
         lock (_lock)
@@ -83,6 +94,13 @@ public class ChatService
         }
     }
 
+    /// <summary>Creates a new profile. New profiles always get the <see cref="Role.Student"/> role.</summary>
+    /// <param name="displayName">Name shown to other users. Required.</param>
+    /// <param name="year">Study year, 1 to 5.</param>
+    /// <param name="note">Short profile note. Required.</param>
+    /// <param name="avatarColorHex">Avatar colour as a hex string. Required.</param>
+    /// <returns>The created profile with its new ID.</returns>
+    /// <exception cref="ArgumentException">Thrown when any of the inputs are invalid.</exception>
     public Profile CreateProfile(string displayName, int year, string note, string avatarColorHex)
     {
         ValidateProfileInput(displayName, year, note, avatarColorHex, Role.Student);
@@ -103,6 +121,14 @@ public class ChatService
         }
     }
 
+    /// <summary>Updates the caller's own profile and raises <see cref="ProfileChanged"/>.</summary>
+    /// <param name="callerId">The user editing their profile.</param>
+    /// <param name="displayName">New display name. Required.</param>
+    /// <param name="year">New study year. 0 is allowed for lecturers, otherwise 1 to 5.</param>
+    /// <param name="note">New profile note. Required.</param>
+    /// <param name="avatarColorHex">New avatar colour as a hex string. Required.</param>
+    /// <exception cref="ArgumentException">Thrown when any of the inputs are invalid.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the caller has no profile.</exception>
     public void UpdateProfile(
         int callerId,
         string displayName,
@@ -131,6 +157,13 @@ public class ChatService
         ProfileChanged?.Invoke();
     }
 
+    /// <summary>Checks profile fields and throws on the first invalid one.</summary>
+    /// <param name="displayName">Display name to check.</param>
+    /// <param name="year">Study year to check. Only checked for students.</param>
+    /// <param name="note">Note to check.</param>
+    /// <param name="avatarColorHex">Avatar colour to check.</param>
+    /// <param name="role">The role the year should be validated against.</param>
+    /// <exception cref="ArgumentException">Thrown when a field is invalid.</exception>
     private static void ValidateProfileInput(
         string displayName,
         int year,
@@ -151,6 +184,9 @@ public class ChatService
             throw new ArgumentException("Avatar color is required.", nameof(avatarColorHex));
     }
 
+    /// <summary>Gets every thread the user is a member of.</summary>
+    /// <param name="userId">The user whose memberships are used.</param>
+    /// <returns>The joined threads. Empty if the user has joined none. Not null.</returns>
     public IReadOnlyList<ChatThread> GetChatThreadsJoinedBy(int userId)
     {
         lock (_lock)
@@ -160,6 +196,13 @@ public class ChatService
         }
     }
 
+    /// <summary>
+    /// The single access rule for threads. Public threads are readable by everyone, private threads only by
+    /// members and auditors. Must be called while holding <c>_lock</c>.
+    /// </summary>
+    /// <param name="callerId">The signed in user, or <c>null</c> for a signed out visitor.</param>
+    /// <param name="threadId">The thread to check.</param>
+    /// <returns><c>true</c> if the caller may read the thread; <c>false</c> otherwise or if the thread does not exist.</returns>
     private bool CanRead(int? callerId, int threadId)
     {
         var thread = _threads.FirstOrDefault(thread => thread.ThreadId == threadId);
@@ -189,6 +232,9 @@ public class ChatService
         return _memberships.Any(membership => membership.UserId == callerId.Value && membership.ThreadId == threadId);
     }
 
+    /// <summary>Finds a thread by ID. Returns metadata only, so no access check is done.</summary>
+    /// <param name="threadId">The thread ID to look up.</param>
+    /// <returns>The thread, or <c>null</c> if it does not exist.</returns>
     public ChatThread? GetChatThreadById(int threadId)
     {
         lock (_lock)
@@ -197,6 +243,12 @@ public class ChatService
         }
     }
 
+    /// <summary>Gets all posts and replies in a thread, including soft deleted posts.</summary>
+    /// <param name="callerId">The signed in user, or <c>null</c> for a signed out visitor.</param>
+    /// <param name="threadId">The thread to read.</param>
+    /// <returns>The posts in the order they were created. Not null.</returns>
+    /// <exception cref="KeyNotFoundException">Thrown when the thread does not exist.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when the caller may not read the thread.</exception>
     public IReadOnlyList<Post> GetPosts(int? callerId, int threadId)
     {
         lock (_lock)
@@ -215,6 +267,9 @@ public class ChatService
         }
     }
     
+    /// <summary>Gets all threads, optionally filtered by name.</summary>
+    /// <param name="query">Case-insensitive text the thread name must contain. Null or blank returns every thread.</param>
+    /// <returns>The matching threads. Not null.</returns>
     public IReadOnlyList<ChatThread> GetAllThreads(string? query = null)
     {
         lock (_lock)
@@ -230,6 +285,10 @@ public class ChatService
         }
     }
 
+    /// <summary>Checks if a user has joined a thread.</summary>
+    /// <param name="userId">The user to check.</param>
+    /// <param name="threadId">The thread to check.</param>
+    /// <returns><c>true</c> if a membership exists.</returns>
     public bool IsMember(int userId, int threadId)
     {
         lock (_lock)
@@ -238,6 +297,15 @@ public class ChatService
         }
     }
 
+    /// <summary>
+    /// Adds the caller as a member of a thread and raises <see cref="MembershipChanged"/>.
+    /// Joining a thread you are already in does nothing. New members start with everything marked as read.
+    /// </summary>
+    /// <param name="callerId">The user joining.</param>
+    /// <param name="threadId">The thread to join.</param>
+    /// <param name="code">The passcode for private threads. Ignored for public threads.</param>
+    /// <exception cref="KeyNotFoundException">Thrown when the thread or user does not exist.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when the passcode for a private thread is wrong.</exception>
     public void JoinChatThread(int callerId, int threadId, string? code)
     {
         lock (_lock)
@@ -278,6 +346,10 @@ public class ChatService
         MembershipChanged?.Invoke();
     }
 
+    /// <summary>Removes the caller's membership and raises <see cref="MembershipChanged"/>. Does nothing if they were not a member.</summary>
+    /// <param name="callerId">The user leaving.</param>
+    /// <param name="threadId">The thread to leave.</param>
+    /// <exception cref="KeyNotFoundException">Thrown when the thread or user does not exist.</exception>
     public void LeaveThread(int callerId, int threadId)
     {
         lock (_lock)
@@ -303,6 +375,19 @@ public class ChatService
         MembershipChanged?.Invoke();
     }
 
+    /// <summary>
+    /// Creates a post or a reply and raises <see cref="PostsChanged"/>. The caller only needs read access,
+    /// not membership. Auditors are read-only and cannot post.
+    /// </summary>
+    /// <param name="callerId">The author.</param>
+    /// <param name="threadId">The thread to post in.</param>
+    /// <param name="title">Optional title. Blank titles are stored as <c>null</c>.</param>
+    /// <param name="body">The post text. Required.</param>
+    /// <param name="parentPostId">The post being replied to, or <c>null</c> for a top level post.</param>
+    /// <returns>The created post.</returns>
+    /// <exception cref="ArgumentException">Thrown when the body is empty or the parent is in another thread.</exception>
+    /// <exception cref="KeyNotFoundException">Thrown when the user, thread or parent post does not exist.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when the caller is an auditor or may not read the thread.</exception>
     public Post CreatePost(int callerId, int threadId, string? title, string body, int? parentPostId)
     {
         if (string.IsNullOrWhiteSpace(body))
@@ -314,11 +399,18 @@ public class ChatService
 
         lock (_lock)
         {
-            if (!_profiles.Any(profiles => profiles.UserId == callerId))
+            var profile = _profiles.FirstOrDefault(profile => profile.UserId == callerId);
+
+            if (profile == null)
             {
                 throw new KeyNotFoundException($"No user with ID {callerId} exists.");
             }
-            
+
+            if (profile.Role == Role.Auditor)
+            {
+                throw new UnauthorizedAccessException("Auditors can read threads but cannot post in them.");
+            }
+
             if (!_threads.Any(thread => thread.ThreadId == threadId))
             {
                 throw new KeyNotFoundException($"No thread with ID {threadId} exists.");
@@ -361,6 +453,14 @@ public class ChatService
         return createdPost;
     }
     
+    /// <summary>
+    /// Deletes one of the caller's own posts and raises <see cref="PostsChanged"/>. A post with replies is
+    /// soft deleted so the replies keep their parent; a post without replies is removed.
+    /// </summary>
+    /// <param name="callerId">The user deleting the post. Must be the author.</param>
+    /// <param name="postId">The post to delete.</param>
+    /// <exception cref="KeyNotFoundException">Thrown when the post does not exist.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when the caller cannot read the thread or is not the author.</exception>
     public void DeletePost(int callerId, int postId)
     {
         lock (_lock)
@@ -400,6 +500,12 @@ public class ChatService
         PostsChanged?.Invoke();
     }
 
+    /// <summary>
+    /// Counts unread posts in each thread the user has joined. A post is unread if it was created after the
+    /// user's read marker, was written by someone else and is not deleted. Replies count as posts.
+    /// </summary>
+    /// <param name="userId">The user to count for.</param>
+    /// <returns>Thread ID to unread count, with an entry for every joined thread. Not null.</returns>
     public IReadOnlyDictionary<int, int> GetUnreadCounts(int userId)
     {
         lock (_lock)
@@ -418,6 +524,9 @@ public class ChatService
         }
     }
 
+    /// <summary>Moves the user's read marker for a thread to now and raises <see cref="ReadStateChanged"/>. Does nothing for non-members.</summary>
+    /// <param name="userId">The user who read the thread.</param>
+    /// <param name="threadId">The thread that was read.</param>
     public void MarkThreadRead(int userId, int threadId)
     {
         bool changed = false;
@@ -440,6 +549,14 @@ public class ChatService
         }
     }
     
+    /// <summary>
+    /// The access rule for direct chats. Only the two participants and auditors may read. Must be called
+    /// while holding <c>_lock</c>.
+    /// </summary>
+    /// <param name="callerId">The signed in user, or <c>null</c> for a signed out visitor.</param>
+    /// <param name="chatId">The direct chat to check.</param>
+    /// <returns><c>true</c> if the caller may read the chat.</returns>
+    /// <exception cref="KeyNotFoundException">Thrown when the chat does not exist.</exception>
     private bool CanReadDirectChat(int? callerId, int chatId)
     {
         var chat = _directChats.FirstOrDefault(c => c.DirectChatId == chatId);
@@ -461,6 +578,12 @@ public class ChatService
                chat.UserIdHighest == callerId.Value;
     }
     
+    /// <summary>Gets the messages in a direct chat, oldest first.</summary>
+    /// <param name="callerId">The signed in user, or <c>null</c> for a signed out visitor.</param>
+    /// <param name="chatId">The direct chat to read.</param>
+    /// <returns>The messages. Not null.</returns>
+    /// <exception cref="KeyNotFoundException">Thrown when the chat does not exist.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when the caller may not read the chat.</exception>
     public IReadOnlyList<Message> GetMessages(int? callerId, int chatId)
     {
         lock (_lock)
@@ -473,6 +596,13 @@ public class ChatService
         }
     }
     
+    /// <summary>
+    /// Gets the direct chats the caller takes part in, or every chat for auditors. Sorted by most recent
+    /// message first; chats without messages come last.
+    /// </summary>
+    /// <param name="callerId">The signed in user.</param>
+    /// <returns>The chats. Not null.</returns>
+    /// <exception cref="KeyNotFoundException">Thrown when the user does not exist.</exception>
     public IReadOnlyList<DirectChat> GetDirectChatsFor(int callerId)
     {
         lock (_lock)
@@ -489,6 +619,12 @@ public class ChatService
         }
     }
     
+    /// <summary>Returns the existing direct chat between two users, or creates it if there is none.</summary>
+    /// <param name="callerId">The user starting the chat.</param>
+    /// <param name="otherUserId">The other participant.</param>
+    /// <returns>The direct chat between the two users.</returns>
+    /// <exception cref="KeyNotFoundException">Thrown when either user does not exist.</exception>
+    /// <exception cref="ArgumentException">Thrown when both IDs are the same user.</exception>
     public DirectChat GetOrCreateDirectChat(int callerId, int otherUserId)
     {
         lock (_lock)
@@ -515,6 +651,13 @@ public class ChatService
         }
     }
     
+    /// <summary>Sends a message in a direct chat and raises <see cref="MessagesChanged"/>. Auditors cannot send.</summary>
+    /// <param name="callerId">The sender. Must be a participant.</param>
+    /// <param name="chatId">The direct chat to send in.</param>
+    /// <param name="text">The message text. Required.</param>
+    /// <exception cref="ArgumentException">Thrown when the text is empty.</exception>
+    /// <exception cref="KeyNotFoundException">Thrown when the chat does not exist.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when the caller is not a participant or is an auditor.</exception>
     public void SendMessage(int callerId, int chatId, string text)
     {
         if (string.IsNullOrWhiteSpace(text))
@@ -538,6 +681,9 @@ public class ChatService
         MessagesChanged?.Invoke();
     }
     
+    /// <summary>Finds a direct chat by ID. No access check is done.</summary>
+    /// <param name="chatId">The chat ID to look up.</param>
+    /// <returns>The chat, or <c>null</c> if it does not exist.</returns>
     public DirectChat? GetDirectChatById(int chatId)
     {
         lock (_lock)

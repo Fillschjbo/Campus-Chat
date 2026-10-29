@@ -148,6 +148,7 @@
     private IReadOnlyList<ChatThread> myThreads = [];
     private IReadOnlyDictionary<int, int> unreadCounts = new Dictionary<int, int>();
 
+    /// <summary>Subscribes to service events and loads the thread lists.</summary>
     protected override void OnInitialized()
     {
         CurrentUser.UserChanged += OnStateChanged;
@@ -159,11 +160,13 @@
         LoadUnreadCounts();
     }
 
+    /// <summary>Filters the list of all threads by the search query.</summary>
     private void SearchThreads()
     {
         threads = Chat.GetAllThreads(query);
     }
     
+    /// <summary>Loads unread counts for the signed in user, or clears them when signed out.</summary>
     private void LoadUnreadCounts()
     {
         if (CurrentUser.CurrentUserId is int userId)
@@ -176,6 +179,7 @@
         }
     }
 
+    /// <summary>Reloads all threads, the user's joined threads and the unread counts.</summary>
     private void ReloadLists()
     {
         threads = Chat.GetAllThreads(query);
@@ -191,6 +195,7 @@
         LoadUnreadCounts();
     }
 
+    /// <summary>Handles a change event from the services by reloading on the renderer's thread.</summary>
     private void OnStateChanged()
     {
         _ = InvokeAsync(() =>
@@ -200,6 +205,7 @@
         });
     }
 
+    /// <summary>Unsubscribes from service events so the singleton does not keep this component alive.</summary>
     public void Dispose()
     {
         CurrentUser.UserChanged -= OnStateChanged;

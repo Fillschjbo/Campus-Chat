@@ -113,6 +113,7 @@ else if (profile != null)
 
     private string? errorMessage;
 
+    /// <summary>Fills the form with the signed in user's current profile.</summary>
     protected override void OnInitialized()
     {
         if (CurrentUser.CurrentUserId == null)
@@ -129,6 +130,7 @@ else if (profile != null)
         avatarColorHex = profile.AvatarColorHex;
     }
 
+    /// <summary>Saves the profile and goes back to the profile page, or shows the validation error.</summary>
     private void Save()
     {
         if (CurrentUser.CurrentUserId == null || profile == null)

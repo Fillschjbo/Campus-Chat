@@ -128,12 +128,15 @@
     private Profile? profile;
     private string? chatError;
     
+    /// <summary>Loads the profile and joined threads for the user in the route.</summary>
     protected override void OnParametersSet()
     {
         profile = Chat.GetProfileById(Id);
         threads = Chat.GetChatThreadsJoinedBy(Id);
     }
     
+    /// <summary>Opens the direct chat with another user, creating it if needed.</summary>
+    /// <param name="otherUserId">The user to chat with.</param>
     private void StartChat(int otherUserId)
     {
         chatError = null;
