@@ -21,6 +21,7 @@ public class ChatService
     public event Action? ProfileChanged;
     public event Action? MembershipChanged;
     public event Action? PostsChanged;
+    public event Action? ReadStateChanged;
     
 
     public ChatService()
@@ -268,7 +269,10 @@ public class ChatService
                     throw new UnauthorizedAccessException($"The private thread code you typed is wrong");
                 }
             }
-            _memberships.Add(new Membership(callerId, threadId));
+            _memberships.Add(new Membership(callerId, threadId)
+            {
+                LastReadUTC = DateTime.UtcNow
+            });
         }
         MembershipChanged?.Invoke();
     }
@@ -393,5 +397,45 @@ public class ChatService
         }
 
         PostsChanged?.Invoke();
+    }
+
+    public IReadOnlyDictionary<int, int> GetUnreadCounts(int userId)
+    {
+        lock (_lock)
+        {
+            var  memberships = _memberships.Where(memberships => memberships.UserId == userId).ToList();
+
+            var unreadCounts = new Dictionary<int, int>();
+
+            foreach (var membership in memberships)
+            {
+                var count = _posts.Count(post => post.ThreadId == membership.ThreadId && post.CreatedAtUTC > membership.LastReadUTC && post.AuthorId != userId && !post.IsDeleted);
+
+                unreadCounts[membership.ThreadId] = count;
+            }
+            return unreadCounts;
+        }
+    }
+
+    public void MarkThreadRead(int userId, int threadId)
+    {
+        bool changed = false;
+
+        lock (_lock)
+        {
+            var membership = _memberships.FirstOrDefault(memberships =>
+                memberships.UserId == userId && memberships.ThreadId == threadId);
+
+            if (membership != null)
+            {
+                membership.LastReadUTC = DateTime.UtcNow;
+                changed = true;
+            }
+        }
+
+        if (changed)
+        {
+            ReadStateChanged?.Invoke();
+        }
     }
 }
