@@ -18,7 +18,6 @@ public class ChatService
     private int _nextPostId = 1;
     private int _nextDirectChatId = 1;
     private int _nextMessageId = 1;
-    public bool IsDeleted { get; set; } = false;
     public event Action? ProfileChanged;
     public event Action? MembershipChanged;
     public event Action? PostsChanged;

@@ -1,0 +1,92 @@
+@inject ChatService Chat
+
+<article class="post-card">
+    @if (Post.IsDeleted)
+    {
+        <p class="deleted-message">[deleted]</p>
+    }
+    else
+    {
+        <div class="post-header">
+            <span class="author-name">
+                @(Chat.GetProfileById(Post.AuthorId)?.DisplayName ?? "Unknown user")
+            </span>
+
+            <time class="post-time">
+                @Post.CreatedAtUTC.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+            </time>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Post.Title))
+        {
+            <h4 class="post-title">@Post.Title</h4>
+        }
+
+        <p class="post-body">@Post.Body</p>
+
+        <div class="post-actions">
+            @if (CurrentUserId.HasValue)
+            {
+                <button type="button"
+                        class="reply-button"
+                        @onclick="Reply">
+                    Reply
+                </button>
+            }
+
+            @if (CurrentUserId == Post.AuthorId)
+            {
+                <button type="button"
+                        class="delete-button"
+                        @onclick="Delete">
+                    Delete
+                </button>
+            }
+        </div>
+    }
+</article>
+
+@{
+    var replies = AllPosts
+        .Where(p => p.ParentPostId == Post.PostId)
+        .OrderBy(p => p.CreatedAtUTC)
+        .ToList();
+}
+
+@if (replies.Count > 0)
+{
+    <div class="replies">
+        @foreach (var reply in replies)
+        {
+            <PostView @key="reply.PostId"
+                      Post="reply"
+                      AllPosts="AllPosts"
+                      CurrentUserId="CurrentUserId"
+                      OnReply="OnReply"
+                      OnDelete="OnDelete" />
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public required Post Post { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<Post> AllPosts { get; set; } = [];
+
+    [Parameter]
+    public int? CurrentUserId { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnReply { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnDelete { get; set; }
+
+    private Task Reply()
+        => OnReply.InvokeAsync(Post.PostId);
+
+    private Task Delete()
+        => OnDelete.InvokeAsync(Post.PostId);
+}

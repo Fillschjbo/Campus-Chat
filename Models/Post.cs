@@ -5,9 +5,9 @@ public class Post
     public int PostId { get; }
     public int ThreadId { get; }
     public int AuthorId { get; }
-    public string? Title { get; set; }
+    public string? Title { get; }
     public string Body { get; }
-    public DateTime CreatedAtUTC { get; set; }
+    public DateTime CreatedAtUTC { get; }
     public int? ParentPostId { get; }
     public bool IsDeleted { get; set; } = false;
     
