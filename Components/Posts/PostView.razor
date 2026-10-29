@@ -8,9 +8,9 @@
     else
     {
         <div class="post-header">
-            <span class="author-name">
+            <a href="@($"/profile/{Post.AuthorId}")" class="author-name">
                 @(Chat.GetProfileById(Post.AuthorId)?.DisplayName ?? "Unknown user")
-            </span>
+            </a>
 
             <time class="post-time">
                 @Post.CreatedAtUTC.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
